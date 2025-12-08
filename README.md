@@ -1,2 +1,0 @@
-# Adiciones
-no leer 
