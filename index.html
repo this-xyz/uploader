@@ -23,7 +23,7 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>CDN Yuki‑Wabot</h1>
+      <h1>CDN de Yuki‑Wabot</h1>
       <span class="badge">main / root</span>
     </header>
     <div class="card">
@@ -39,7 +39,10 @@
     async function uploadFile(file) {
       const formData = new FormData()
       formData.append('file', file)
-      const res = await fetch('http://localhost:3000/upload', { method: 'POST', body: formData })
+      const res = await fetch('http://localhost:3000/upload', {
+        method: 'POST',
+        body: formData
+      })
       if (!res.ok) {
         const text = await res.text()
         throw new Error(`Error HTTP ${res.status}: ${text}`)
