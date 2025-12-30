@@ -1,10 +1,10 @@
 name: Upload to CDN
 
 on:
-  workflow_dispatch:   # lo puedes correr manualmente desde la pestaña Actions
+  workflow_dispatch:
   push:
     paths:
-      - "files/**"     # o cuando se agreguen archivos a la carpeta files
+      - "files/**"
 
 jobs:
   upload:
@@ -18,7 +18,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.CDN_TOKEN }}
         run: echo "Token cargado desde secrets"
 
-      - name: Subir archivo a carpeta files
+      - name: Commit y push de archivos
         run: |
           git config user.name "cdn-bot"
           git config user.email "cdn-bot@users.noreply.github.com"
