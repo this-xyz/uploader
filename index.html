@@ -23,7 +23,7 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>CDN Yuki‑Wabot</h1>
+      <h1>CDN de Yuki‑Wabot</h1>
       <span class="badge">main / root</span>
     </header>
     <div class="card">
@@ -35,46 +35,23 @@
 
   <script>
     const $ = s => document.querySelector(s)
-    const repo = 'this-xyz/uploader'
-    const folder = 'files'
-    const token = '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'
-    const usedIds = new Set()
-
-    function generateUniqueFilename(mime) {
-      const ext = mime.split('/')[1] || 'bin'
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-      let id
-      do {
-        id = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
-      } while (usedIds.has(id))
-      usedIds.add(id)
-      return `${id}.${ext}`
-    }
 
     async function uploadFile(file) {
-      const mime = file.type || 'application/octet-stream'
-      const filename = generateUniqueFilename(mime)
-      const buffer = await file.arrayBuffer()
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
-
-      const res = await fetch(`https://api.github.com/repos/${repo}/contents/${folder}/${filename}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'upload-web'
-        },
-        body: JSON.stringify({
-          message: 'Subido',
-          content: base64
-        })
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/upload', {
+        method: 'POST',
+        body: formData
       })
-
+      if (!res.ok) {
+        const text = await res.text()
+        throw new Error(`Error HTTP ${res.status}: ${text}`)
+      }
       const data = await res.json()
-      if (data?.content?.download_url) {
-        return `https://cdn.yuki-wabot.my.id/${folder}/${filename}`
+      if (data.url) {
+        return data.url
       } else {
-        throw new Error('Falló la subida a GitHub: ' + data.message)
+        throw new Error('No se recibió URL de subida')
       }
     }
 
@@ -89,7 +66,7 @@
           <button class="copyBtn" onclick="navigator.clipboard.writeText('${url}')">Copiar URL</button>
         `
       } catch (e) {
-        $('#result').innerHTML = `<div class="pill">Error: ${e}</div>`
+        $('#result').innerHTML = `<div class="pill">Error: ${e.message || e}</div>`
       }
     })
   </script>
