@@ -5,8 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>CDN Yuki-Wabot</title>
   <style>
-    :root {--bg:#0b0f14;--fg:#e7eef7;--muted:#8ea0b3;--accent:#6ee7ff;--card:#11161d;--border:#1f2a37}
-    *{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui;background:var(--bg);color:var(--fg)}
+    :root {
+      --bg:#0b0f14;--fg:#e7eef7;--muted:#8ea0b3;--accent:#6ee7ff;--card:#11161d;--border:#1f2a37
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font:14px/1.5 system-ui;background:var(--bg);color:var(--fg)}
     .wrap{max-width:920px;margin:0 auto;padding:24px}
     header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
     h1{font-size:18px;margin:0}
@@ -16,6 +19,7 @@
     button{width:100%;cursor:pointer;background:#0f1720;color:var(--fg);border-radius:10px;padding:12px 14px;border:1px solid var(--border)}
     button.primary{background:linear-gradient(90deg,#22d3ee 0%,#60a5fa 100%);color:#041018;border:none;font-weight:600}
     .pill{padding:6px 8px;border:1px dashed var(--border);border-radius:8px;background:#0c1218;margin-top:6px}
+    .mono{font-family:monospace}
     a{color:var(--accent);text-decoration:none}
     .copyBtn{margin-top:8px;background:#1f2937;color:#fff;border:none;padding:8px 12px;border-radius:8px}
   </style>
@@ -26,6 +30,7 @@
       <h1>CDN de Yuki‑Wabot</h1>
       <span class="badge">main / root</span>
     </header>
+
     <div class="card">
       <input type="file" id="fileInput" accept="image/*,video/*">
       <button id="uploadBtn" class="primary">Subir</button>
@@ -35,38 +40,62 @@
 
   <script>
     const $ = s => document.querySelector(s)
-    const ENV = {TOKEN:"${GITHUB_TOKEN}",REPO:"${REPO}",FOLDER:"${FOLDER}",DOMAIN:"${DOMAIN}"}
+    const repo = 'this-xyz/uploader'
+    const folder = 'files'
+    const token = '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'
 
-    function generateId(ext){
-      const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-      let id='';for(let i=0;i<4;i++)id+=chars[Math.floor(Math.random()*chars.length)]
+    function generateId(ext) {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+      let id = ''
+      for (let i = 0; i < 4; i++) id += chars[Math.floor(Math.random() * chars.length)]
       return `${id}.${ext}`
     }
 
-    async function uploadFile(file){
-      const mime=file.type||'application/octet-stream'
-      const ext=mime.split('/')[1]||'bin'
-      const filename=generateId(ext)
-      const buffer=await file.arrayBuffer()
-      const base64=btoa(String.fromCharCode(...new Uint8Array(buffer)))
-      const res=await fetch(`https://api.github.com/repos/${ENV.REPO}/contents/${ENV.FOLDER}/${filename}`,{
-        method:'PUT',
-        headers:{Authorization:`Bearer ${ENV.TOKEN}`,'Content-Type':'application/json'},
-        body:JSON.stringify({message:'Subido',content:base64})
+    async function uploadFile(file) {
+      const mime = file.type || 'application/octet-stream'
+      const ext = mime.split('/')[1] || 'bin'
+      const filename = generateId(ext)
+      const reader = new FileReader()
+      reader.readAsArrayBuffer(file)
+      return new Promise((resolve, reject) => {
+        reader.onload = async () => {
+          const buffer = reader.result
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
+          const res = await fetch(`https://api.github.com/repos/${repo}/contents/${folder}/${filename}`, {
+            method: 'PUT',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+              'User-Agent': 'upload-web'
+            },
+            body: JSON.stringify({
+              message: 'Subido',
+              content: base64
+            })
+          })
+          const data = await res.json()
+          if (data?.content?.download_url) {
+            resolve(`https://cdn.yuki-wabot.my.id/${folder}/${filename}`)
+          } else {
+            reject(data.message || 'Error')
+          }
+        }
       })
-      const data=await res.json()
-      if(data?.content?.download_url){return `${ENV.DOMAIN}/${ENV.FOLDER}/${filename}`}
-      throw new Error(data.message||'Error')
     }
 
-    $('#uploadBtn').addEventListener('click',async()=>{
-      const file=$('#fileInput').files[0];if(!file)return
-      $('#result').innerHTML='<div class="pill">Subiendo…</div>'
-      try{
-        const url=await uploadFile(file)
-        $('#result').innerHTML=`<div class="pill">URL: <a href="${url}" target="_blank">${url}</a></div>
-        <button class="copyBtn" onclick="navigator.clipboard.writeText('${url}')">Copiar URL</button>`
-      }catch(e){$('#result').innerHTML=`<div class="pill">Error: ${e}</div>`}
+    $('#uploadBtn').addEventListener('click', async () => {
+      const file = $('#fileInput').files[0]
+      if (!file) return
+      $('#result').innerHTML = '<div class="pill">Subiendo…</div>'
+      try {
+        const url = await uploadFile(file)
+        $('#result').innerHTML = `
+          <div class="pill">URL: <a href="${url}" target="_blank">${url}</a></div>
+          <button class="copyBtn" onclick="navigator.clipboard.writeText('${url}')">Copiar URL</button>
+        `
+      } catch (e) {
+        $('#result').innerHTML = `<div class="pill">Error: ${e}</div>`
+      }
     })
   </script>
 </body>
