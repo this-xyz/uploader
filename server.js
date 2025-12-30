@@ -1,43 +1,29 @@
 import express from 'express'
 import multer from 'multer'
-import fetch from 'node-fetch'
-import dotenv from 'dotenv'
+import fs from 'fs'
+import path from 'path'
 
-dotenv.config()
 const app = express()
 const upload = multer()
+const folder = path.join(process.cwd(), 'files')
 
 app.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const file = req.file
-    const buffer = file.buffer
     const mime = file.mimetype
     const ext = mime.split('/')[1] || 'bin'
-    const filename = Math.random().toString(36).slice(2,6) + '.' + ext
-    const base64 = buffer.toString('base64')
+    const filename = Math.random().toString(36).slice(2, 6) + '.' + ext
+    const filepath = path.join(folder, filename)
 
-    const response = await fetch(`https://api.github.com/repos/${process.env.REPO}/contents/files/${filename}`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'upload-web'
-      },
-      body: JSON.stringify({
-        message: 'Subido',
-        content: base64
-      })
-    })
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder)
 
-    const data = await response.json()
-    if (data?.content?.download_url) {
-      res.json({ url: `https://cdn.yuki-wabot.my.id/files/${filename}` })
-    } else {
-      res.status(500).send(data.message || 'Error en subida')
-    }
+    fs.writeFileSync(filepath, file.buffer)
+
+    const url = `https://cdn.yuki-wabot.my.id/files/${filename}`
+    res.json({ url })
   } catch (e) {
     res.status(500).send(e.message)
   }
 })
 
-app.listen(3000, () => console.log('Servidor en http://localhost:3000'))
+app.listen(3000)
