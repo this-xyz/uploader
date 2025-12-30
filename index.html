@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CDN Yuki-Wabot</title>
+  <style>
+    :root {--bg:#0b0f14;--fg:#e7eef7;--muted:#8ea0b3;--accent:#6ee7ff;--card:#11161d;--border:#1f2a37}
+    *{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui;background:var(--bg);color:var(--fg)}
+    .wrap{max-width:920px;margin:0 auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    h1{font-size:18px;margin:0}
+    .badge{padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--muted)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin:12px 0}
+    input[type="file"]{width:100%;border-radius:10px;border:1px solid var(--border);background:#0d131a;color:var(--fg);padding:12px}
+    button{width:100%;cursor:pointer;background:#0f1720;color:var(--fg);border-radius:10px;padding:12px 14px;border:1px solid var(--border)}
+    button.primary{background:linear-gradient(90deg,#22d3ee 0%,#60a5fa 100%);color:#041018;border:none;font-weight:600}
+    .pill{padding:6px 8px;border:1px dashed var(--border);border-radius:8px;background:#0c1218;margin-top:6px}
+    a{color:var(--accent);text-decoration:none}
+    .copyBtn{margin-top:8px;background:#1f2937;color:#fff;border:none;padding:8px 12px;border-radius:8px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>CDN Yuki‑Wabot</h1>
+      <span class="badge">main / root</span>
+    </header>
+    <div class="card">
+      <input type="file" id="fileInput" accept="image/*,video/*">
+      <button id="uploadBtn" class="primary">Subir</button>
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <script>
+    const $ = s => document.querySelector(s)
+    const repo = 'this-xyz/uploader'
+    const folder = 'files'
+    const token = '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'
+    const usedIds = new Set()
+
+    function generateUniqueFilename(mime) {
+      const ext = mime.split('/')[1] || 'bin'
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+      let id
+      do {
+        id = Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+      } while (usedIds.has(id))
+      usedIds.add(id)
+      return `${id}.${ext}`
+    }
+
+    async function uploadFile(file) {
+      const mime = file.type || 'application/octet-stream'
+      const filename = generateUniqueFilename(mime)
+      const buffer = await file.arrayBuffer()
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)))
+
+      const res = await fetch(`https://api.github.com/repos/${repo}/contents/${folder}/${filename}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'User-Agent': 'upload-web'
+        },
+        body: JSON.stringify({
+          message: 'Subido',
+          content: base64
+        })
+      })
+
+      const data = await res.json()
+      if (data?.content?.download_url) {
+        return `https://cdn.yuki-wabot.my.id/${folder}/${filename}`
+      } else {
+        throw new Error('Falló la subida a GitHub: ' + data.message)
+      }
+    }
+
+    $('#uploadBtn').addEventListener('click', async () => {
+      const file = $('#fileInput').files[0]
+      if (!file) return
+      $('#result').innerHTML = '<div class="pill">Subiendo…</div>'
+      try {
+        const url = await uploadFile(file)
+        $('#result').innerHTML = `
+          <div class="pill">URL: <a href="${url}" target="_blank">${url}</a></div>
+          <button class="copyBtn" onclick="navigator.clipboard.writeText('${url}')">Copiar URL</button>
+        `
+      } catch (e) {
+        $('#result').innerHTML = `<div class="pill">Error: ${e}</div>`
+      }
+    })
+  </script>
+</body>
+</html>
