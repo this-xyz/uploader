@@ -39,7 +39,7 @@
     async function uploadFile(file) {
       const formData = new FormData()
       formData.append('file', file)
-      const res = await fetch('/upload', { method: 'POST', body: formData })
+      const res = await fetch('http://localhost:3000/upload', { method: 'POST', body: formData })
       if (!res.ok) {
         const text = await res.text()
         throw new Error(`Error HTTP ${res.status}: ${text}`)
