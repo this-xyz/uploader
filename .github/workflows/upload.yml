@@ -1,0 +1,27 @@
+name: Upload to CDN
+
+on:
+  workflow_dispatch:   # lo puedes correr manualmente desde la pestaña Actions
+  push:
+    paths:
+      - "files/**"     # o cuando se agreguen archivos a la carpeta files
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Configurar GitHub Token
+        env:
+          GITHUB_TOKEN: ${{ secrets.CDN_TOKEN }}
+        run: echo "Token cargado desde secrets"
+
+      - name: Subir archivo a carpeta files
+        run: |
+          git config user.name "cdn-bot"
+          git config user.email "cdn-bot@users.noreply.github.com"
+          git add files/
+          git commit -m "Upload via Action"
+          git push
